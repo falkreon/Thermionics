@@ -1,0 +1,7 @@
+{
+	"parent": "block/cube_all",
+	"textures": {
+		"all": "thermionics:block/refractory_brick",
+		"particle": "thermionics:block/refractory_brick"
+	}
+}

@@ -1,0 +1,5 @@
+{
+    "variants": {
+        "": { "model": "thermionics:block/refractory_vent" }
+    }
+}

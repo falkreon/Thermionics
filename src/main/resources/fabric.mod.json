@@ -1,31 +1,32 @@
 {
 	"schemaVersion": 1,
-	"id": "modid",
+	"id": "thermionics",
 	"version": "${version}",
-	"name": "Example mod",
-	"description": "This is an example description! Tell everyone what your mod is about!",
+	"name": "Thermionics",
+	"description": "Fringe technology mod, revived from the dead",
 	"authors": [
-		"Me!"
+		"Falkreon"
 	],
 	"contact": {
-		"homepage": "https://fabricmc.net/",
-		"sources": "https://github.com/FabricMC/fabric-example-mod"
+		"homepage": "https://github.com/falkreon/Thermionics",
+		"sources": "https://github.com/falkreon/Thermionics",
+		"issues": "https://github.com/falkreon/Thermionics/issues"
 	},
-	"license": "CC0-1.0",
-	"icon": "assets/modid/icon.png",
+	"license": "MIT",
+	"icon": "assets/thermionics/icon.png",
 	"environment": "*",
 	"entrypoints": {
 		"main": [
-			"com.example.ExampleMod"
+			"blue.endless.thermionics.ThermionicsMod"
 		],
 		"client": [
-			"com.example.ExampleModClient"
+			"blue.endless.thermionics.client.ThermionicsClient"
 		]
 	},
 	"mixins": [
-		"modid.mixins.json",
+		"thermionics.mixins.json",
 		{
-			"config": "modid.client.mixins.json",
+			"config": "thermionics.client.mixins.json",
 			"environment": "client"
 		}
 	],
@@ -34,8 +35,5 @@
 		"minecraft": "~1.21",
 		"java": ">=21",
 		"fabric-api": "*"
-	},
-	"suggests": {
-		"another-mod": "*"
 	}
 }
