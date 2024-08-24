@@ -16,20 +16,20 @@ public class ShoppingList {
 		return (Collection<Entry<T>>) (Object) resourceTypeMap.get(clazz);
 	}
 	
-	public <T> List<VariantStack<T>> getListOfResourceType(Class<T> clazz) {
+	public <T> List<ResourceStack<T>> getListOfResourceType(Class<T> clazz) {
 		return getResourceEntries(clazz).stream()
 				.filter(it -> it.resourceClass.equals(clazz))
 				.map(it -> it.resource)
 				.collect(Collectors.toUnmodifiableList());
 	}
 	
-	public <T> ShoppingList requestResource(Class<T> resourceClass, VariantStack<T> resource) {
+	public <T> ShoppingList requestResource(Class<T> resourceClass, ResourceStack<T> resource) {
 		resourceTypeMap.put(resourceClass, new Entry<T>(resourceClass, resource));
 		
 		return this;
 	}
 	
-	public <T> long fulfill(Class<T> resourceClass, VariantStack<T> resource, boolean simulate) {
+	public <T> long fulfill(Class<T> resourceClass, ResourceStack<T> resource, boolean simulate) {
 		long remaining = resource.count();
 		for(Entry<T> entry : getResourceEntries(resourceClass)) {
 			if (entry.test(resource)) remaining = entry.fulfill(remaining, simulate);
@@ -67,21 +67,21 @@ public class ShoppingList {
 	
 	public static class Entry<T> {
 		private final Class<T> resourceClass;
-		private final VariantStack<T> resource;
+		private final ResourceStack<T> resource;
 		private boolean ignoreComponents;
 		private long simulatedFulfill = 0L;
 		private long actualFulfill = 0L;
 		
-		public Entry(Class<T> resourceClass, VariantStack<T> resource) {
+		public Entry(Class<T> resourceClass, ResourceStack<T> resource) {
 			this.resourceClass = resourceClass;
 			this.resource = resource;
 		}
 		
-		public boolean test(VariantStack<T> stack) {
+		public boolean test(ResourceStack<T> stack) {
 			if (ignoreComponents) {
-				return Objects.equals(stack.variant().getObject(), resource.variant().getObject());
+				return Objects.equals(stack.resource().object(), resource.resource().object());
 			} else {
-				return Objects.equals(stack.variant(), resource.variant());
+				return Objects.equals(stack.resource(), resource.resource());
 			}
 		}
 		

@@ -1,11 +1,13 @@
 package blue.endless.thermionics.api.transfer.capability;
 
-import blue.endless.thermionics.api.transfer.VariantStack;
-import net.fabricmc.fabric.api.transfer.v1.storage.TransferVariant;
+import java.util.Optional;
+
+import blue.endless.thermionics.api.transfer.Resource;
+import blue.endless.thermionics.api.transfer.ResourceStack;
 
 /**
- * Allows a user to extract items from this resource.
- * @param <T>
+ * Allows a consumer to extract items
+ * @param <T> the type of Resource (e.g. Item, Fluid)
  */
 public interface ExtractCapability<T> {
 	/**
@@ -16,7 +18,7 @@ public interface ExtractCapability<T> {
 	 * @param simulate if true, no changes will be committed
 	 * @return the resources that could be extracted
 	 */
-	public VariantStack<T> extract(int slot, long amount, boolean simulate);
+	public Optional<ResourceStack<T>> extract(int slot, long amount, boolean simulate);
 	
 	/**
 	 * Attempts to extract a specific resource from this resource storage. Whatever is successfully
@@ -26,12 +28,12 @@ public interface ExtractCapability<T> {
 	 * <p>This method is sensitive to ComponentChanges. Only resources which match the exact
 	 * TransferVariant will be returned.
 	 * 
-	 * @param variant the exact resource to extract
+	 * @param resource the exact resource to extract
 	 * @param amount the maximum number of resources to extract
 	 * @param simulate if true, no changes will be committed
 	 * @return the resources that could be extracted
 	 */
-	public VariantStack<T> extract(TransferVariant<T> variant, long amount, boolean simulate);
+	public Optional<ResourceStack<T>> extract(Resource<T> resource, long amount, boolean simulate);
 	
 	/**
 	 * Attempts to extract a specific resource from this resource storage. his method is NOT
@@ -54,5 +56,5 @@ public interface ExtractCapability<T> {
 	 * @param simulate if true, no changes will be committed
 	 * @return the resources that could be extracted
 	 */
-	public VariantStack<T> extract(T resource, long amount, boolean simulate);
+	public Optional<ResourceStack<T>> extract(T resource, long amount, boolean simulate);
 }

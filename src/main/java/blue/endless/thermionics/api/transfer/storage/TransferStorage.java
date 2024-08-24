@@ -2,45 +2,41 @@ package blue.endless.thermionics.api.transfer.storage;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import org.spongepowered.include.com.google.common.base.Objects;
 
-import blue.endless.thermionics.api.transfer.ShoppingList;
-import blue.endless.thermionics.api.transfer.Transfer;
-import blue.endless.thermionics.api.transfer.VariantStack;
-import blue.endless.thermionics.api.transfer.capability.ShoppingListCapability;
+import blue.endless.thermionics.api.transfer.Resource;
+import blue.endless.thermionics.api.transfer.ResourceStack;
 import blue.endless.thermionics.api.transfer.capability.StorageCapability;
-import net.fabricmc.fabric.api.transfer.v1.storage.TransferVariant;
 import net.minecraft.fluid.Fluid;
 import net.minecraft.item.Item;
 import net.minecraft.util.collection.DefaultedList;
 
-public class TransferStorage<T> implements StorageCapability<T>, ShoppingListCapability {
+public class TransferStorage<T> implements StorageCapability<T> {
 	private final long maxStackSize;
-	private final Transfer<T> transferBuddy;
-	private DefaultedList<VariantStack<T>> contents;
+	private DefaultedList<Optional<ResourceStack<T>>> contents;
 	private List<Runnable> changeListeners = new ArrayList<>();
 	
-	public TransferStorage(int slots, long maxStackSize, Transfer<T> transfer) {
-		contents = DefaultedList.ofSize(slots, transfer.blank());
+	public TransferStorage(int slots, long maxStackSize) {
+		contents = DefaultedList.ofSize(slots, Optional.empty());
 		this.maxStackSize = maxStackSize;
-		this.transferBuddy = transfer;
 	}
 	
 	public static TransferStorage<Item> items(int slots) {
-		return new TransferStorage<>(slots, 64, Transfer.ITEM);
+		return new TransferStorage<>(slots, 64);
 	}
 	
 	public static TransferStorage<Item> singleItemStack() {
-		return new TransferStorage<>(1, 64, Transfer.ITEM);
+		return new TransferStorage<>(1, 64);
 	}
 	
 	public static TransferStorage<Fluid> fluids(int tanks, long tankCapacity) {
-		return new TransferStorage<>(tanks, tankCapacity, Transfer.FLUID);
+		return new TransferStorage<>(tanks, tankCapacity);
 	}
 	
 	public static TransferStorage<Fluid> fluidTank(long tankCapacity) {
-		return new TransferStorage<>(1, tankCapacity, Transfer.FLUID);
+		return new TransferStorage<>(1, tankCapacity);
 	}
 	
 	public void addChangeListener(Runnable r) {
@@ -58,8 +54,8 @@ public class TransferStorage<T> implements StorageCapability<T>, ShoppingListCap
 	 */
 	
 	@Override
-	public VariantStack<T> getSlot(int slotNumber) {
-		if (slotNumber < 0 || slotNumber >= contents.size()) return transferBuddy.blank();
+	public Optional<ResourceStack<T>> getSlot(int slotNumber) {
+		if (slotNumber < 0 || slotNumber >= contents.size()) return Optional.empty();
 		
 		return contents.get(slotNumber);
 	}
@@ -74,28 +70,27 @@ public class TransferStorage<T> implements StorageCapability<T>, ShoppingListCap
 	 */
 	
 	@Override
-	public VariantStack<T> insert(int slot, VariantStack<T> stack, boolean simulate) {
-		if (slot < 0 || slot >= contents.size()) return stack;
-		VariantStack<T> existing = getSlot(slot);
+	public Optional<ResourceStack<T>> insert(int slot, ResourceStack<T> stack, boolean simulate) {
+		if (slot < 0 || slot >= contents.size()) return Optional.of(stack);
+		Optional<ResourceStack<T>> existing = getSlot(slot);
 		
-		Transfer.Result<T> transfer = transferBuddy.merge(existing, stack, maxStackSize);
-		if (!simulate) {
-			contents.set(slot, transfer.result());
+		ResourceStack.MergeResult<T> transfer = ResourceStack.merge(existing, Optional.of(stack), maxStackSize);
+		if (!simulate && !(Objects.equal(existing, transfer.merged()))) {
+			contents.set(slot, transfer.merged());
+			fireChanged();
 		}
-		
-		if (!simulate) fireChanged();
 		
 		return transfer.rejected();
 	}
 
 	@Override
-	public VariantStack<T> insert(VariantStack<T> stack, boolean simulate) {
-		VariantStack<T> remainder = stack;
+	public Optional<ResourceStack<T>> insert(ResourceStack<T> stack, boolean simulate) {
+		Optional<ResourceStack<T>> remainder = Optional.of(stack);
 		
 		for(int i=0; i<contents.size(); i++) {
-			Transfer.Result<T> transfer = transferBuddy.merge(contents.get(i), remainder, maxStackSize);
+			ResourceStack.MergeResult<T> transfer = ResourceStack.merge(contents.get(i), remainder, maxStackSize);
 			if (!simulate) {
-				contents.set(i, transfer.result());
+				contents.set(i, transfer.merged());
 			}
 			remainder = transfer.rejected();
 			if (remainder.isEmpty()) break;
@@ -111,48 +106,49 @@ public class TransferStorage<T> implements StorageCapability<T>, ShoppingListCap
 	 */
 	
 	@Override
-	public VariantStack<T> extract(int slot, long amount, boolean simulate) {
-		if (slot < 0 || slot >= contents.size()) return transferBuddy.blank();
+	public Optional<ResourceStack<T>> extract(int slot, long amount, boolean simulate) {
+		if (slot < 0 || slot >= contents.size()) return Optional.empty();
 		
-		VariantStack<T> existing = contents.get(slot);
-		if (existing.isEmpty()) return transferBuddy.blank();
+		Optional<ResourceStack<T>> existing = contents.get(slot);
+		if (existing.isEmpty()) return Optional.empty();
 		
-		Transfer.Result<T> transfer = transferBuddy.split(existing, amount);
+		ResourceStack.SplitResult<T> transfer = ResourceStack.split(existing, amount);
 		
 		if (!simulate) {
-			contents.set(slot, transfer.rejected());
+			contents.set(slot, transfer.remaining());
 			fireChanged();
 		}
 		
-		return transfer.result();
+		return transfer.split();
 	}
 
 	@Override
-	public VariantStack<T> extract(TransferVariant<T> variant, long amount, boolean simulate) {
-		if (amount == 0) return transferBuddy.blank();
+	public Optional<ResourceStack<T>> extract(Resource<T> resource, long amount, boolean simulate) {
+		if (amount == 0) return Optional.empty();
 		
-		VariantStack<T> accumulated = transferBuddy.blank();
+		Optional<ResourceStack<T>> accumulated = Optional.empty();
 		
 		for(int i=0; i<contents.size(); i++) {
-			long remaining = amount - accumulated.count();
+			long remaining = amount - ResourceStack.count(accumulated);
 			if (remaining <= 0) break;
 			
-			VariantStack<T> cur = contents.get(i);
-			if (!Objects.equal(cur.variant(), variant)) continue;
+			Optional<ResourceStack<T>> cur = contents.get(i);
+			if (!Objects.equal(cur, Optional.of(resource))) continue;
 			
-			Transfer.Result<T> transfer = transferBuddy.split(cur, remaining);
+			ResourceStack.SplitResult<T> transfer = ResourceStack.split(cur, remaining);
 			
 			if (!simulate) {
-				contents.set(i, transfer.rejected());
+				contents.set(i, transfer.remaining());
 			}
 			
 			if (accumulated.isEmpty()) {
-				accumulated = transfer.result();
+				accumulated = transfer.split();
 			} else {
-				accumulated = accumulated.copyWithCount(accumulated.count() + transfer.result().count());
+				ResourceStack<T> acc = accumulated.get();
+				accumulated = acc.copyWithCount(acc.count() + ResourceStack.count(transfer.split()));
 			}
 			
-			if (accumulated.count() == amount) break;
+			if (ResourceStack.count(accumulated) == amount) break;
 		}
 		
 		// Something in the inventory is changing if and only if we're not in simulation mode, and
@@ -165,31 +161,31 @@ public class TransferStorage<T> implements StorageCapability<T>, ShoppingListCap
 	}
 
 	@Override
-	public VariantStack<T> extract(T resource, long amount, boolean simulate) {
-		if (amount == 0) return transferBuddy.blank();
+	public Optional<ResourceStack<T>> extract(T resource, long amount, boolean simulate) {
+		if (amount == 0) return Optional.empty();
 		
-		VariantStack<T> accumulated = transferBuddy.blank();
+		Optional<ResourceStack<T>> accumulated = Optional.empty();
 		
 		for(int i=0; i<contents.size(); i++) {
-			long remaining = amount - accumulated.count();
+			long remaining = amount - ResourceStack.count(accumulated);
 			if (remaining <= 0) break;
 			
-			VariantStack<T> cur = contents.get(i);
-			if (!Objects.equal(cur.variant().getObject(), resource)) continue;
+			Optional<ResourceStack<T>> cur = contents.get(i);
+			if (!Objects.equal(cur.map(ResourceStack::resource).map(Resource::object), Optional.of(resource))) continue;
 			
 			// We need to do a prospective extract-and-merge, and then compare the intermediate and result quantities
-			Transfer.Result<T> extract = transferBuddy.split(cur, remaining);
-			Transfer.Result<T> merge = transferBuddy.merge(accumulated, extract.result(), amount);
+			ResourceStack.SplitResult<T> extract = ResourceStack.split(cur, remaining);
+			ResourceStack.MergeResult<T> merge = ResourceStack.merge(accumulated, extract.split(), amount);
 			// If we can't fully merge the stack, and it's not for quantity reasons, generally the components are incompatible, so skip this stack.
 			if (!merge.rejected().isEmpty()) continue;
 			
 			if (!simulate) {
-				contents.set(i, extract.rejected());
+				contents.set(i, extract.remaining());
 			}
 			
-			accumulated = merge.result();
+			accumulated = merge.merged();
 			
-			if (accumulated.count() == amount) break;
+			if (ResourceStack.count(accumulated) == amount) break;
 		}
 		
 		// Something in the inventory is changing if and only if we're not in simulation mode, and
@@ -199,18 +195,6 @@ public class TransferStorage<T> implements StorageCapability<T>, ShoppingListCap
 		}
 		
 		return accumulated;
-	}
-	
-	@Override
-	public boolean extract(ShoppingList list, boolean simulate) {
-		// TODO Auto-generated method stub
-		return false;
-	}
-
-	@Override
-	public boolean extractPartial(ShoppingList list, boolean simulate) {
-		// TODO Auto-generated method stub
-		return false;
 	}
 	
 }

@@ -1,6 +1,8 @@
 package blue.endless.thermionics.api.transfer.capability;
 
-import blue.endless.thermionics.api.transfer.VariantStack;
+import java.util.Optional;
+
+import blue.endless.thermionics.api.transfer.ResourceStack;
 
 public interface InsertCapability<T> {
 	/**
@@ -11,7 +13,7 @@ public interface InsertCapability<T> {
 	 * @param simulate if true, no changes will be committed
 	 * @return a remainder stack of anything that could not be inserted
 	 */
-	public VariantStack<T> insert(int slot, VariantStack<T> stack, boolean simulate);
+	public Optional<ResourceStack<T>> insert(int slot, ResourceStack<T> stack, boolean simulate);
 	
 	/**
 	 * Attempts to insert the stack into this resource storage. The stack may be split across
@@ -20,5 +22,5 @@ public interface InsertCapability<T> {
 	 * @param simulate if true, no changes will be committed
 	 * @return a remainder stack of anything that could not be inserted
 	 */
-	public VariantStack<T> insert(VariantStack<T> stack, boolean simulate);
+	public Optional<ResourceStack<T>> insert(ResourceStack<T> stack, boolean simulate);
 }

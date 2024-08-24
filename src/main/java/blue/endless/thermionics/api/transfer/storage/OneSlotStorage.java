@@ -1,53 +1,50 @@
 package blue.endless.thermionics.api.transfer.storage;
 
-import java.util.Objects;
+import java.util.Optional;
 
-import blue.endless.thermionics.api.transfer.Transfer;
-import blue.endless.thermionics.api.transfer.VariantStack;
+import blue.endless.thermionics.api.transfer.Resource;
+import blue.endless.thermionics.api.transfer.ResourceStack;
 import blue.endless.thermionics.api.transfer.capability.StorageCapability;
-import net.fabricmc.fabric.api.transfer.v1.storage.TransferVariant;
 
 public abstract class OneSlotStorage<T> implements StorageCapability<T> {
 	
-	protected abstract Transfer<T> getTransfer();
-	
 	@Override
-	public VariantStack<T> insert(int slot, VariantStack<T> stack, boolean simulate) {
-		if (slot != 0) return stack;
+	public Optional<ResourceStack<T>> insert(int slot, ResourceStack<T> stack, boolean simulate) {
+		if (slot != 0) return Optional.of(stack);
 		
 		return insert(stack, simulate);
 	}
 
 	@Override
-	public VariantStack<T> extract(int slot, long amount, boolean simulate) {
-		if (slot != 0) return getTransfer().blank();
+	public Optional<ResourceStack<T>> extract(int slot, long amount, boolean simulate) {
+		if (slot != 0) return Optional.empty();
 		
 		return extract(amount, simulate);
 	}
 
 	@Override
-	public VariantStack<T> extract(TransferVariant<T> variant, long amount, boolean simulate) {
-		if (!Objects.equals(getSlot(0).variant(), variant)) return getTransfer().blank();
+	public Optional<ResourceStack<T>> extract(Resource<T> resource, long amount, boolean simulate) {
+		if (getSlot(0).filter(it -> it.isOf(resource)).isEmpty()) return Optional.empty();
 		
-		return extract(variant.getObject(), amount, simulate);
+		return extract(amount, simulate);
 	}
 
 	@Override
-	public VariantStack<T> extract(T resource, long amount, boolean simulate) {
-		if (!Objects.equals(getSlot(0).variant().getObject(), resource)) return getTransfer().blank();
+	public Optional<ResourceStack<T>> extract(T resource, long amount, boolean simulate) {
+		if (getSlot(0).filter(it -> it.isOf(resource)).isEmpty()) return Optional.empty();
 		
 		return extract(amount, simulate);
 	}
 	
-	protected abstract VariantStack<T> extract(long amount, boolean simulate);
+	protected abstract Optional<ResourceStack<T>> extract(long amount, boolean simulate);
 
 	@Override
-	public VariantStack<T> getSlot(int slotNumber) {
-		if (slotNumber == 0) return getTransfer().blank();
+	public Optional<ResourceStack<T>> getSlot(int slotNumber) {
+		if (slotNumber == 0) return Optional.empty();
 		return getStack();
 	}
 	
-	protected abstract VariantStack<T> getStack();
+	protected abstract Optional<ResourceStack<T>> getStack();
 
 	@Override
 	public int getSlotCount() {
