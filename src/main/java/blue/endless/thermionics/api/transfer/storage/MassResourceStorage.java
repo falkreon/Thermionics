@@ -2,10 +2,9 @@ package blue.endless.thermionics.api.transfer.storage;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
 
 import blue.endless.thermionics.api.MassResource;
+import blue.endless.thermionics.api.transfer.OptionalStack;
 import blue.endless.thermionics.api.transfer.Resource;
 import blue.endless.thermionics.api.transfer.ResourceStack;
 
@@ -26,14 +25,14 @@ public class MassResourceStorage extends OneSlotStorage<MassResource> {
 	}
 
 	@Override
-	public Optional<ResourceStack<MassResource>> insert(ResourceStack<MassResource> stack, boolean simulate) {
-		// These early checks are also overed by merge, but it's faster to early-reject here.
-		if (stack.resource().hasComponents() || !Objects.equals(stack.resource().object(), resource)) return Optional.empty();
+	public OptionalStack<MassResource> insert(ResourceStack<MassResource> stack, boolean simulate) {
+		// These early checks are also covered by merge, but it's faster to early-reject here.
+		if (!stack.isOf(resource) || stack.resource().hasComponents()) return OptionalStack.of(stack);
 		
-		ResourceStack.MergeResult<MassResource> transfer = ResourceStack.merge(getStack(), Optional.of(stack), limit);
+		ResourceStack.MergeResult<MassResource> transfer = getStack().merge(stack, limit);
 		
-		if (!simulate && ResourceStack.count(transfer.merged()) != count) {
-			count = ResourceStack.count(transfer.merged());
+		if (!simulate && transfer.merged().count() != count) {
+			count = transfer.merged().count();
 			fireChanges();
 		}
 		
@@ -41,16 +40,16 @@ public class MassResourceStorage extends OneSlotStorage<MassResource> {
 	}
 
 	@Override
-	protected Optional<ResourceStack<MassResource>> extract(long amount, boolean simulate) {
-		if (this.count == 0L) return Optional.empty();
+	protected OptionalStack<MassResource> extract(long amount, boolean simulate) {
+		if (this.count == 0L) return OptionalStack.empty();
 		
-		Optional<ResourceStack<MassResource>> existing = getStack();
-		if (existing.isEmpty()) return Optional.empty(); // Shouldn't happen because of check above
+		OptionalStack<MassResource> existing = getStack();
+		if (existing.isEmpty()) return OptionalStack.empty(); // Shouldn't happen because of check above
 		
 		ResourceStack.SplitResult<MassResource> transfer = existing.get().split(amount);
 		
 		if (!simulate && !transfer.split().isEmpty()) {
-			count = ResourceStack.count(transfer.remaining());
+			count = transfer.remaining().count();
 			fireChanges();
 		}
 		
@@ -58,9 +57,9 @@ public class MassResourceStorage extends OneSlotStorage<MassResource> {
 	}
 
 	@Override
-	protected Optional<ResourceStack<MassResource>> getStack() {
-		if (count <= 0L) return Optional.empty();
-		return Optional.of(new ResourceStack<>(new Resource<>(resource), count));
+	protected OptionalStack<MassResource> getStack() {
+		if (count <= 0L) return OptionalStack.empty();
+		return OptionalStack.of(new ResourceStack<>(new Resource<>(resource), count));
 	}
 	
 	public long getCount() {

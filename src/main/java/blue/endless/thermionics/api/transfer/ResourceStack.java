@@ -18,16 +18,16 @@ public record ResourceStack<T>(Resource<T> resource, long count) {
 		return Objects.equals(this.resource.object(), resource);
 	}
 	
-	public Optional<ResourceStack<T>> decrement() {
-		if (count <= 1L) return Optional.empty();
+	public OptionalStack<T> decrement() {
+		if (count <= 1L) return OptionalStack.empty();
 		
-		return Optional.of(new ResourceStack<>(resource, count - 1L));
+		return OptionalStack.of(new ResourceStack<>(resource, count - 1L));
 	}
 	
-	public Optional<ResourceStack<T>> copyWithCount(long newCount) {
-		if (newCount <= 0L) return Optional.empty();
+	public OptionalStack<T> copyWithCount(long newCount) {
+		if (newCount <= 0L) return OptionalStack.empty();
 		
-		return Optional.of(new ResourceStack<>(resource, newCount));
+		return OptionalStack.of(new ResourceStack<>(resource, newCount));
 	}
 	
 	/**
@@ -39,19 +39,19 @@ public record ResourceStack<T>(Resource<T> resource, long count) {
 			 * The stack that was successfully split out from the source ResourceStack, or empty if
 			 * nothing could be removed
 			 */
-			Optional<ResourceStack<T>> split,
+			OptionalStack<T> split,
 			/**
 			 * The state of the original resource stack after the split
 			 */
-			Optional<ResourceStack<T>> remaining
+			OptionalStack<T> remaining
 			) {}
 	
 	public SplitResult<T> split(long count) {
 		// Reject all?
-		if (count <= 0) return new SplitResult<>(Optional.empty(), Optional.of(this));
+		if (count <= 0) return new SplitResult<>(OptionalStack.empty(), OptionalStack.of(this));
 				
 		// Transfer all?
-		if (this.count <= count) return new SplitResult<>(Optional.of(this), Optional.empty());
+		if (this.count <= count) return new SplitResult<>(OptionalStack.of(this), OptionalStack.empty());
 				
 		// stack size is > count, so transfer Some
 		long accepted = count;
@@ -69,41 +69,41 @@ public record ResourceStack<T>(Resource<T> resource, long count) {
 			 * The state of this stack after the other stack attempts to merge into it. In other
 			 * words, the resulting merged stack.
 			 */
-			Optional<ResourceStack<T>> merged,
+			OptionalStack<T> merged,
 			/**
 			 * The state of the other stack after attempting to put its contents all into this
 			 * stack. In other words, the rejected resources.
 			 */
-			Optional<ResourceStack<T>> rejected
+			OptionalStack<T> rejected
 			) {}
 	
 	public MergeResult<T> merge(ResourceStack<T> other, long sizeLimit) {
 		// incompatible dest, reject all
-		if (!Objects.equals(this.resource(), other.resource())) return new MergeResult<>(Optional.of(this), Optional.of(other));
+		if (!Objects.equals(this.resource(), other.resource())) return new MergeResult<>(OptionalStack.of(this), OptionalStack.of(other));
 		
 		long mergedSize = this.count() + other.count();
 		long resultSize = Math.min(mergedSize, sizeLimit);
 		long remainderSize = mergedSize - resultSize;
 		return (remainderSize <= 0) ?
-			new MergeResult<>(copyWithCount(resultSize), Optional.empty()) :
+			new MergeResult<>(copyWithCount(resultSize), OptionalStack.empty()) :
 			new MergeResult<>(copyWithCount(mergedSize), copyWithCount(remainderSize));
 	}
 	
-	public MergeResult<T> merge(Optional<ResourceStack<T>> other, long sizeLimit) {
+	public MergeResult<T> merge(OptionalStack<T> other, long sizeLimit) {
 		if (other.isEmpty()) {
-			return new MergeResult<>(Optional.of(this), Optional.empty());
+			return new MergeResult<>(OptionalStack.of(this), OptionalStack.empty());
 		} else {
 			return merge(other.get(), sizeLimit);
 		}
 	}
 	
-	public static <T> MergeResult<T> merge(Optional<ResourceStack<T>> dest, Optional<ResourceStack<T>> src, long sizeLimit) {
+	public static <T> MergeResult<T> merge(OptionalStack<T> dest, OptionalStack<T> src, long sizeLimit) {
 		if (dest.isEmpty()) return new MergeResult<>(dest, src);
 		return dest.get().merge(src, sizeLimit);
 	}
 	
-	public static <T> SplitResult<T> split(Optional<ResourceStack<T>> src, long count) {
-		if (src.isEmpty()) return new SplitResult<>(Optional.empty(), Optional.empty());
+	public static <T> SplitResult<T> split(OptionalStack<T> src, long count) {
+		if (src.isEmpty()) return new SplitResult<>(OptionalStack.empty(), OptionalStack.empty());
 		
 		return src.get().split(count);
 	}

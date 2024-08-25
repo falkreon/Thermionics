@@ -2,6 +2,7 @@ package blue.endless.thermionics.api.transfer.capability;
 
 import java.util.Optional;
 
+import blue.endless.thermionics.api.transfer.OptionalStack;
 import blue.endless.thermionics.api.transfer.Resource;
 import blue.endless.thermionics.api.transfer.ResourceStack;
 
@@ -18,7 +19,7 @@ public interface ExtractCapability<T> {
 	 * @param simulate if true, no changes will be committed
 	 * @return the resources that could be extracted
 	 */
-	public Optional<ResourceStack<T>> extract(int slot, long amount, boolean simulate);
+	public OptionalStack<T> extract(int slot, long amount, boolean simulate);
 	
 	/**
 	 * Attempts to extract a specific resource from this resource storage. Whatever is successfully
@@ -33,7 +34,7 @@ public interface ExtractCapability<T> {
 	 * @param simulate if true, no changes will be committed
 	 * @return the resources that could be extracted
 	 */
-	public Optional<ResourceStack<T>> extract(Resource<T> resource, long amount, boolean simulate);
+	public OptionalStack<T> extract(Resource<T> resource, long amount, boolean simulate);
 	
 	/**
 	 * Attempts to extract a specific resource from this resource storage. his method is NOT
@@ -56,5 +57,5 @@ public interface ExtractCapability<T> {
 	 * @param simulate if true, no changes will be committed
 	 * @return the resources that could be extracted
 	 */
-	public Optional<ResourceStack<T>> extract(T resource, long amount, boolean simulate);
+	public OptionalStack<T> extract(T resource, long amount, boolean simulate);
 }
